@@ -1,32 +1,24 @@
 import next from "next";
-import {
-  createServer,
-  IncomingMessage,
-  Server,
-  ServerResponse,
-} from "node:http";
-import { Socket } from "node:net";
+import { createServer } from "node:http";
 import { parse } from "node:url";
 import { WebSocket, WebSocketServer } from "ws";
 
 const nextApp = next({ dev: process.env.NODE_ENV !== "production" });
 const handle = nextApp.getRequestHandler();
-const clients: Set<WebSocket> = new Set();
+const clients = new Set();
 
 nextApp.prepare().then(() => {
-  const server: Server = createServer(
-    (req: IncomingMessage, res: ServerResponse) => {
-      handle(req, res, parse(req.url || "", true));
-    }
-  );
+  const server = createServer((req, res) => {
+    handle(req, res, parse(req.url || "", true));
+  });
 
   const wss = new WebSocketServer({ noServer: true });
 
-  wss.on("connection", (ws: WebSocket) => {
+  wss.on("connection", (ws) => {
     clients.add(ws);
     console.log("New client connected");
 
-    ws.on("message", (message: Buffer, isBinary: boolean) => {
+    ws.on("message", (message, isBinary) => {
       console.log(`Message received: ${message}`);
       clients.forEach((client) => {
         if (
@@ -44,7 +36,7 @@ nextApp.prepare().then(() => {
     });
   });
 
-  server.on("upgrade", (req: IncomingMessage, socket: Socket, head: Buffer) => {
+  server.on("upgrade", (req, socket, head) => {
     const { pathname } = parse(req.url || "/", true);
 
     if (pathname === "/_next/webpack-hmr") {
